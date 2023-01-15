@@ -1,11 +1,17 @@
 import { signIn, signOut, useSession } from "next-auth/react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { requireAuth } from "../common/requireAuth";
+import { router } from "../server/api/trpc";
 import { api } from "../utils/api";
+
+export const getServerSideProps = requireAuth(async (ctx) => {
+  return { props: {} };
+});
 
 function AddMessageForm({ onMessageSend }: { onMessageSend: () => void }) {
   const addPost = api.messages.add.useMutation();
-  const { data: session } = useSession();
   const [message, setMessage] = useState("");
   const [enterToPostMessage, setEnterToPostMessage] = useState(true);
   async function sendMessage() {
@@ -21,32 +27,6 @@ function AddMessageForm({ onMessageSend }: { onMessageSend: () => void }) {
 
   const isTyping = api.messages.isTyping.useMutation();
 
-  const userName = session?.user?.name;
-
-  console.log(session);
-  // if (!userName) {
-  //   return (
-  //     <div className="flex w-full justify-between rounded bg-gray-800 px-3 py-2 text-lg text-gray-200">
-  //       <p className="font-bold">
-  //         You have to{" "}
-  //         <button
-  //           className="inline font-bold underline"
-  //           onClick={() => signIn()}
-  //         >
-  //           sign in
-  //         </button>{" "}
-  //         to write.
-  //       </p>
-  //       <button
-  //         onClick={() => signIn()}
-  //         data-testid="signin"
-  //         className="h-full rounded bg-indigo-500 px-4"
-  //       >
-  //         Sign In
-  //       </button>
-  //     </div>
-  //   );
-  // }
   return (
     <>
       <form
@@ -122,7 +102,7 @@ export default function IndexPage() {
   });
   type Message = NonNullable<typeof messages>[number];
   const { data: session } = useSession();
-  const userName = session?.user?.name;
+  const username = session?.user?.name;
   const scrollTargetRef = useRef<HTMLDivElement>(null);
 
   // fn to add and dedupe new messages onto state
@@ -176,7 +156,8 @@ export default function IndexPage() {
   const [currentlyTyping, setCurrentlyTyping] = useState<string[]>([]);
   api.messages.whoIsTyping.useSubscription(undefined, {
     onData(data) {
-      setCurrentlyTyping(data);
+      const names = Object.values(data).map((user) => user.name);
+      setCurrentlyTyping(names);
     },
   });
 
@@ -219,7 +200,7 @@ export default function IndexPage() {
                     </li>
                   </ul>
                 </article>
-                {userName && (
+                {username && (
                   <article>
                     <h2 className="text-lg text-gray-200">User information</h2>
                     <ul className="space-y-2">
@@ -231,7 +212,7 @@ export default function IndexPage() {
                           type="text"
                           disabled
                           className="bg-transparent"
-                          value={userName}
+                          value={username}
                         />
                       </li>
                       <li>
@@ -261,31 +242,29 @@ export default function IndexPage() {
                   : "Nothing more to load"}
               </button>
               <div className="space-y-4">
-                {messages?.map((item) => (
-                  <article key={item.id} className=" text-gray-50">
+                {messages?.map((message) => (
+                  <article key={message.id} className=" text-gray-50">
                     <header className="flex space-x-2 text-sm">
-                      {/* <h3 className="text-md">
-                        {item === "RAW" ? (
-                          item.name
-                        ) : (
+                      <h3 className="text-md">
+                        {!!message && (
                           <a
-                            href={`https://github.com/${item.name}`}
+                            href={`/profile/${message.senderName}`}
                             target="_blank"
                             rel="noreferrer"
                           >
-                            {item.name}
+                            {message.senderName}
                           </a>
                         )}
-                      </h3> */}
+                      </h3>
                       <span className="text-gray-500">
                         {new Intl.DateTimeFormat("en-GB", {
                           dateStyle: "short",
                           timeStyle: "short",
-                        }).format(item.createdAt)}
+                        }).format(message.createdAt)}
                       </span>
                     </header>
                     <p className="whitespace-pre-line text-xl leading-tight">
-                      {item.text}
+                      {message.text}
                     </p>
                   </article>
                 ))}

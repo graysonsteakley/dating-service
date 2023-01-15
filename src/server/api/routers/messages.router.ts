@@ -2,8 +2,9 @@ import { z } from "zod";
 import { observable } from "@trpc/server/observable";
 import { EventEmitter } from "events";
 
-import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
+import { publicProcedure, authedProcedure, router } from "../trpc";
 import { Message } from "@prisma/client";
+import { prisma } from "../../db";
 
 interface MyEvents {
   add: (data: Message) => void;
@@ -25,7 +26,7 @@ class MyEventEmitter extends EventEmitter {}
 const ee = new MyEventEmitter();
 
 // who is currently typing, key is `name`
-const currentlyTyping: Record<string, { lastTyped: Date }> =
+const currentlyTyping: Record<string, { lastTyped: Date; name: string }> =
   Object.create(null);
 
 // every 1s, clear old "isTyping"
@@ -44,8 +45,8 @@ const interval = setInterval(() => {
 }, 3e3);
 process.on("SIGTERM", () => clearInterval(interval));
 
-export const messageRouter = createTRPCRouter({
-  add: protectedProcedure
+export const messageRouter = router({
+  add: authedProcedure
     .input(
       z.object({
         senderId: z.string().uuid().optional(),
@@ -53,31 +54,38 @@ export const messageRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input, ctx }) => {
-      const { id } = ctx.session.user;
-      const message = await ctx.prisma?.message.create({
-        data: {
-          ...input,
-          senderId: id,
-        },
-      });
-      if (!!message) {
-        ee.emit("add", message);
-        delete currentlyTyping[id];
-        ee.emit("isTypingUpdate");
-        return message;
+      const { id, name } = ctx.user;
+      if (!!name) {
+        const message = await prisma?.message.create({
+          data: {
+            ...input,
+            senderId: id,
+            senderName: name,
+          },
+        });
+        if (!!message) {
+          ee.emit("add", message);
+          delete currentlyTyping[id];
+          ee.emit("isTypingUpdate");
+          return message;
+        }
       }
     }),
 
-  isTyping: protectedProcedure
+  isTyping: authedProcedure
     .input(z.object({ typing: z.boolean() }))
     .mutation(({ input, ctx }) => {
-      const { id } = ctx.session.user;
+      const { id, name } = ctx.user;
       if (!input.typing) {
         delete currentlyTyping[id];
       } else {
-        currentlyTyping[id] = {
-          lastTyped: new Date(),
-        };
+        if (name) {
+          console.log(name);
+          currentlyTyping[id] = {
+            lastTyped: new Date(),
+            name,
+          };
+        }
       }
       ee.emit("isTypingUpdate");
     }),
@@ -90,12 +98,12 @@ export const messageRouter = createTRPCRouter({
         take: z.number().min(1).max(50).nullish(),
       })
     )
-    .query(async ({ input, ctx }) => {
+    .query(async ({ input }) => {
       const take = input.take ?? 10;
       const cursor = input.cursor;
       const id = input.id;
 
-      const messages = await ctx.prisma?.message.findMany({
+      const messages = await prisma?.message.findMany({
         orderBy: {
           createdAt: "desc",
         },
@@ -127,15 +135,30 @@ export const messageRouter = createTRPCRouter({
   }),
 
   whoIsTyping: publicProcedure.subscription(() => {
-    let prev: string[] | null = null;
-    return observable<string[]>((emit) => {
-      const onIsTypingUpdate = () => {
-        const newData = Object.keys(currentlyTyping);
-
-        if (!prev || prev.toString() !== newData.toString()) {
-          emit.next(newData);
+    let prev: Record<
+      string,
+      {
+        lastTyped: Date;
+        name: string;
+      }
+    > = {};
+    return observable<
+      Record<
+        string,
+        {
+          lastTyped: Date;
+          name: string;
         }
-        prev = newData;
+      >
+    >((emit) => {
+      const onIsTypingUpdate = () => {
+        const newData = { ...currentlyTyping };
+        if (!!currentlyTyping) {
+          // const key = Object.keys(currentlyTyping);
+
+          emit.next(newData);
+          prev = newData;
+        }
       };
       ee.on("isTypingUpdate", onIsTypingUpdate);
       return () => {

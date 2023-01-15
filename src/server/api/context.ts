@@ -4,14 +4,13 @@ import { NodeHTTPCreateContextFnOptions } from "@trpc/server/adapters/node-http"
 import { IncomingMessage } from "http";
 import { getSession } from "next-auth/react";
 import ws from "ws";
-import { prisma } from "../db";
 
 /**
  * Creates context for an incoming request
  * @link https://trpc.io/docs/context
  */
 export const createContext = async (
-  opts?:
+  opts:
     | trpcNext.CreateNextContextOptions
     | NodeHTTPCreateContextFnOptions<IncomingMessage, ws>
 ) => {
@@ -21,7 +20,6 @@ export const createContext = async (
 
   return {
     session,
-    prisma,
   };
 };
 

@@ -1,3 +1,4 @@
+import { NodeHTTPCreateContextFn } from "@trpc/server/adapters/node-http";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
 
 import fetch from "node-fetch";

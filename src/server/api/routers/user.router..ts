@@ -1,30 +1,40 @@
-import { z } from "zod";
+import { publicProcedure, router } from "../trpc";
+import { prisma } from "../../db";
+import { signUpSchema } from "../../../common/validation/auth";
+import { TRPCError } from "@trpc/server";
+import { hash } from "argon2";
 
-import { createTRPCRouter, publicProcedure } from "../trpc";
-
-export const userRouter = createTRPCRouter({
+export const userRouter = router({
   createUser: publicProcedure
-    .input(
-      z.object({
-        name: z.string(),
-        email: z.string(),
-        description: z.string(),
-        headline: z.string(),
-      })
-    )
-    .mutation(async ({ input, ctx }) => {
-      const user = await ctx.prisma.user.create({
-        data: {
-          ...input,
-          name: input.name ?? ctx.session?.user?.name,
-          email: input.email ?? ctx.session?.user?.email,
-        },
-      });
-      return user ?? undefined;
-    }),
-  getAllUsers: publicProcedure.query(async ({ ctx }) => {
-    const users = await ctx.prisma.user.findMany();
+    .input(signUpSchema)
+    .mutation(async ({ input }) => {
+      const { username, email, password, name } = input;
 
+      const exists = await prisma.user.findFirst({
+        where: { email },
+      });
+
+      if (exists) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "User already exists.",
+        });
+      }
+
+      const hashedPassword = await hash(password);
+
+      const result = await prisma.user.create({
+        data: { name, username, email, password: hashedPassword },
+      });
+
+      return {
+        status: 201,
+        message: "Account created successfully",
+        result: result.email,
+      };
+    }),
+  getAllUsers: publicProcedure.query(async () => {
+    const users = await prisma.user.findMany();
     return users ?? [];
   }),
 });
