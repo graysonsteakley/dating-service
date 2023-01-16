@@ -79,8 +79,7 @@ export const messageRouter = router({
       if (!input.typing) {
         delete currentlyTyping[id];
       } else {
-        if (name) {
-          console.log(name);
+        if (!!name) {
           currentlyTyping[id] = {
             lastTyped: new Date(),
             name,

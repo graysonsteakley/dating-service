@@ -5,7 +5,7 @@ const RoomPage = () => {
   const { query } = useRouter();
   const roomId = query.roomId as string;
   const { data: session } = useSession();
-  console.log(session);
+
   if (!session) {
     return (
       <div>

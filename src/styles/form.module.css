@@ -1,0 +1,27 @@
+.inputGroup {
+  @apply flex rounded-xl border;
+  position: relative;
+}
+
+.inputText {
+  @apply w-full rounded-xl border py-4 px-6;
+  @apply border-none focus:outline-none;
+}
+
+.loginBtn {
+  @apply w-full rounded-md bg-gradient-to-r from-blue-500 to-indigo-500;
+  @apply border py-3 text-gray-700 text-white;
+}
+
+.btnGoogle {
+  @apply flex w-full justify-center gap-2 border py-3;
+  height: 49px;
+  justify-content: center;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  align-items: center;
+}
+
+.btnGoogle svg {
+  max-width: 20px;
+}
