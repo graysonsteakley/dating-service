@@ -2,14 +2,23 @@ import { verify } from "argon2";
 import NextAuth from "next-auth";
 import { AppProviders } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
-import CredentialsProvider from "next-auth/providers/credentials";
 import { loginSchema } from "../../../common/validation/auth";
 import { prisma } from "../../../server/db";
-// import GithubProvider from "next-auth/providers/github";
+import GoogleProvider from "next-auth/providers/google";
+import FacebookProvider from "next-auth/providers/facebook";
 
 let useMockProvider = process.env.NODE_ENV === "test";
-const { GITHUB_CLIENT_ID, GITHUB_SECRET, NODE_ENV, APP_ENV, NEXTAUTH_SECRET } =
-  process.env;
+const {
+  GITHUB_CLIENT_ID,
+  GITHUB_SECRET,
+  NODE_ENV,
+  APP_ENV,
+  NEXTAUTH_SECRET,
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  FACEBOOK_CLIENT_ID,
+  FACEBOOK_CLIENT_SECRET,
+} = process.env;
 if (
   (NODE_ENV !== "production" || APP_ENV === "test") &&
   (!GITHUB_CLIENT_ID || !GITHUB_SECRET)
@@ -45,7 +54,7 @@ providers.push(
         return null;
       }
 
-      const isValidPassword = await verify(user.password, creds.password);
+      const isValidPassword = await verify(user.password ?? "", creds.password);
 
       if (!isValidPassword) {
         return null;
@@ -58,6 +67,20 @@ providers.push(
         username: user.username,
       };
     },
+  })
+);
+
+providers.push(
+  GoogleProvider({
+    clientId: GOOGLE_CLIENT_ID ?? "",
+    clientSecret: GOOGLE_CLIENT_SECRET ?? "",
+  })
+);
+
+providers.push(
+  FacebookProvider({
+    clientId: FACEBOOK_CLIENT_ID ?? "",
+    clientSecret: FACEBOOK_CLIENT_SECRET ?? "",
   })
 );
 // if (useMockProvider) {
@@ -103,18 +126,49 @@ providers.push(
 export default NextAuth({
   // Configure one or more authentication providers
   providers,
+  pages: {
+    error: "/login",
+  },
   secret: NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
   },
   callbacks: {
-    jwt: async ({ token, user }) => {
-      if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
+    signIn: async ({ account, profile }) => {
+      if (
+        (!!account && !!profile && account.provider === "google") ||
+        (!!account && !!profile && account.provider === "facebook")
+      ) {
+        const user = await prisma.user.findUnique({
+          where: { email: profile.email },
+        });
+        console.log("found user", user);
+        if (!user && !!profile?.name && !!profile?.email) {
+          const newUser = await prisma.user.create({
+            data: {
+              name: profile.name,
+              email: profile.email,
+              username: profile.email,
+            },
+          });
+          console.log("new user", newUser);
+        }
+        return true;
       }
+      return true; // do other things for other providers
+    },
+    jwt: async ({ token, user }) => {
+      if (!!user && !!user?.email) {
+        const foundUser = await prisma.user.findUnique({
+          where: { email: user.email },
+        });
 
+        if (!!foundUser) {
+          token.id = foundUser.id;
+          token.email = foundUser.email;
+          token.name = foundUser.name;
+        }
+      }
       return token;
     },
     session: async ({ session, token }) => {

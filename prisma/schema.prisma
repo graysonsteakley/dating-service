@@ -53,7 +53,7 @@ model User {
   username      String    @unique
   email         String    @unique
   emailVerified DateTime?
-  password      String
+  password      String?
   headline      String?
   description   String?
   interests     String[]
