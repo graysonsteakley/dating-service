@@ -10,6 +10,7 @@ interface MatchCardProps {
     age: number;
     city: string;
     name: string;
+    img: string;
   };
 }
 

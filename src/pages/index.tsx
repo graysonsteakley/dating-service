@@ -113,7 +113,6 @@ const Home: NextPage = () => {
             <TiHeart className="pl-2 text-3xl" />
             <p>Click me!</p>
           </Button>
-
           <GridCard users={users} />
         </div>
       </main>
