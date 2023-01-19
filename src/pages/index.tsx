@@ -1,8 +1,72 @@
 // @/src/pages/index.tsx
 import type { NextPage } from "next";
-import { signOut, useSession } from "next-auth/react";
 import Head from "next/head";
+import Link from "next/link";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { TiHeart } from "react-icons/ti";
+
+import { api } from "../utils/api";
+import Button from "../components/buttons";
+import { Colors } from "../types/frontend-types/color-types";
+import MatchCard from "../components/cards/match-card";
+import GridCard from "../components/cards/grid-card";
+import Navigation from "../components/navigation";
 import { useRouter } from "next/router";
+
+const user = {
+  name: "Luffy",
+  age: 19,
+  city: "Wano City",
+  img: "https://images5.alphacoders.com/951/thumb-1920-951748.jpg",
+};
+
+const users = [
+  {
+    id: 1,
+    name: "Luffy, 19",
+    img: "https://tse2.mm.bing.net/th?id=OIP._dscY2Od2Np1uNGB8LRFkAHaGI&pid=Api&P=0",
+  },
+  {
+    id: 2,
+    name: "Zoro, 21",
+    img: "https://lh5.googleusercontent.com/proxy/mGlcP4FoCa-I065jMZw5s7T5i-elsn095N2wJozgGFZyy8dPjVB6rhyQPni4G0cW5-WfJQat-5QkxTbnfV4qAhD5-jqSZAHxz9A12JtyposriDGZArA8LJQO7SXmbtwtRvTTtz_ykoLwOapXv6LtAQ7ZftF6Ea_O84wJ0myArid5p9-gbDtBJGp9T34P-u7CpBEHgO1MtHgQEkWifCPVwEhwwWU8e9g0i3apthDRIRxLfzHn2oM=w1200-h630-p-k-no-nu",
+  },
+  {
+    id: 3,
+    name: "Nami, 19",
+    img: "https://tse1.mm.bing.net/th?id=OIP.YbyKEnxfzL_pQgEHN1UsywHaFj&pid=Api&P=0",
+  },
+  {
+    id: 4,
+    name: "Robin, 23",
+    img: "https://i.pinimg.com/originals/88/d6/95/88d695c106f6f5ae7cf5d5b77e8fbd2c.jpg",
+  },
+  {
+    id: 5,
+    name: "Jinbei, 30",
+    img: "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/9ad7dd91-c4d7-48ea-8268-24fab182735c/dcn7pv2-061dcf58-c879-4d74-8a54-037efdad57a3.jpg/v1/fill/w_1024,h_1024,q_75,strp/one_piece_jinbei___fan_art__by_nairarun15_dcn7pv2-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOiIsImlzcyI6InVybjphcHA6Iiwib2JqIjpbW3siaGVpZ2h0IjoiPD0xMDI0IiwicGF0aCI6IlwvZlwvOWFkN2RkOTEtYzRkNy00OGVhLTgyNjgtMjRmYWIxODI3MzVjXC9kY243cHYyLTA2MWRjZjU4LWM4NzktNGQ3NC04YTU0LTAzN2VmZGFkNTdhMy5qcGciLCJ3aWR0aCI6Ijw9MTAyNCJ9XV0sImF1ZCI6WyJ1cm46c2VydmljZTppbWFnZS5vcGVyYXRpb25zIl19.ZmA-4dKx1Xz5bRN4DSNRzwfwTqTOy2WWdpZSNweTZ_g",
+  },
+  {
+    id: 6,
+    name: "Chopper, 17",
+    img: "https://pre00.deviantart.net/6587/th/pre/i/2012/085/2/7/chopper_one_piece_by_madbax-d4qjjhm.png",
+  },
+  {
+    id: 7,
+    name: "Sanji, 21",
+    img: "https://pbs.twimg.com/profile_images/420971735950049281/f1s4RBd5.jpeg",
+  },
+  {
+    id: 8,
+    name: "Franky, 26",
+    img: "https://yt3.ggpht.com/a/AATXAJzBG_upuJHNMR-LOTNQ828HcWKW7DU4qC5jvg=s900-c-k-c0xffffffff-no-rj-mo",
+  },
+  {
+    id: 9,
+    name: "Ussop, 20",
+    img: "https://yt3.ggpht.com/a/AATXAJwkVM2SELJ9wHCLOISC7b1vBgDEORBWTr7cxw=s900-c-k-c0xffffffff-no-rj-mo",
+  },
+];
 
 const Home: NextPage = () => {
   const router = useRouter();
@@ -21,7 +85,7 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="container flex h-screen w-screen flex-col justify-center align-middle">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-slate-200">
         <h1>Welcome to Dating Service</h1>
         {!hasUser && (
           <button
@@ -36,6 +100,21 @@ const Home: NextPage = () => {
             Logout
           </button>
         )}
+      <Navigation />
+        <div className="align-center flex flex-col justify-center gap-2">
+          <h1 className="">Welcome to this dating service</h1>
+          <Link href="/create-account" className="bg-white p-3 text-center">
+            Create an Account
+          </Link>
+          <Button
+            color={Colors.PEACH_ACTIVE}
+            classes="rounded-full flex justify-center items-center text-lg "
+          >
+            <TiHeart className="pl-2 text-3xl" />
+            <p>Click me!</p>
+          </Button>
+          <GridCard users={users} />
+        </div>
       </main>
     </div>
   );

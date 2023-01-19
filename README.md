@@ -26,3 +26,13 @@ You can check out the [create-t3-app GitHub repository](https://github.com/t3-os
 ## How do I deploy this?
 
 Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+
+## For Angelie
+
+### M1 mac not good with docker
+
+## Instead run colima start
+
+### check docker running with docker ps
+
+### in app directory run docker-compose up
